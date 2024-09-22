@@ -127,7 +127,15 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClCompile Include="Alpha.cpp" />
+    <ClCompile Include="ChargingManager.cpp" />
+    <ClCompile Include="eVTOL.cpp" />
     <ClCompile Include="evToll Simulator.cpp" />
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="Alpha.h" />
+    <ClInclude Include="ChargingManager.h" />
+    <ClInclude Include="eVTOL.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
