@@ -14,7 +14,7 @@ class ChargingManager
 		bool IsOccupied;
 		eVTOL* curUser;
 
-		ChargingStation(int id) : stationID(id), IsOccupied(false) {}
+		ChargingStation(int id) : stationID(id), IsOccupied(false), curUser(nullptr) {}
 
 		void stopCharging(eVTOL* User);
 		void startCharging(const int& durationInSeconds, eVTOL* User);

@@ -24,7 +24,7 @@ void ChargingManager::ChargingStation::startCharging(const int& durationInSecond
 ChargingManager::ChargingManager(std::size_t numChargers) {
 	ChargingStations.reserve(numChargers);
 	for (std::size_t i = 0; i < numChargers; ++i) {
-		ChargingStations.emplace_back(new ChargingStation(i + 1));
+		ChargingStations.emplace_back(new ChargingStation(static_cast<int>(i + 1)));
 	}
 }
 
