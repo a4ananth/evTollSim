@@ -3,6 +3,8 @@
 #include <thread>
 #include <chrono>
 #include <vector>
+#include <queue>
+#include <memory>
 
 
 class ChargingManager
@@ -14,14 +16,16 @@ class ChargingManager
 
 		ChargingStation(int id) : stationID(id), IsOccupied(false) {}
 
-		void stopCharging();
+		void stopCharging(eVTOL* User);
 		void startCharging(const int& durationInSeconds, eVTOL* User);
 	};
 
 	std::vector<ChargingStation*> ChargingStations;
+	std::queue<eVTOL*> AircraftsinLIne;
 
 public:
-	ChargingManager(int numChargers);
-	void chargeAircraft(eVTOL* aircraft)
+	ChargingManager(std::size_t numChargers);
+	void chargeAircraft(eVTOL* aircraft);
+	~ChargingManager();
 };
 
