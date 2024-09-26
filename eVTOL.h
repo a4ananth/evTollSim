@@ -5,12 +5,12 @@
 class eVTOL
 {
 	// Constant parameters that are pre-set by manufacturer
-	int CruiseSpeed;						// Maximum speed at which aircraft can cruise
-	int maxPassengerCount;					// Maximum passengers airccraft can transport
-	int BatteryCapacity;					// Net capacity of the battery
-	double TimeToCharge;					// Time in hours required to charge the battery back to 100%
-	double CruisingPowerConsumtion;			// power used while cruising at cruise speed
-	double FaultsPerHour;					// Probability of faults = > % increase in the consumption of battery kWh value per hour => reduced airtime
+	int CruiseSpeed;												// Maximum speed at which aircraft can cruise
+	int maxPassengerCount;											// Maximum passengers airccraft can transport
+	int BatteryCapacity;											// Net capacity of the 
+	double CruisingPowerConsumtion;									// power used while cruising at cruise speed
+	double FaultsPerHour;											// Probability of faults = > % increase in the consumption of battery kWh value per hour => reduced airtime
+	std::chrono::duration<double, std::ratio<3600>> TimeToCharge;	// Time in hours required to charge the battery back to 100%
 
 	// Metrics to track 
 	int numFaults;							// No. of faults during current 
@@ -29,12 +29,15 @@ class eVTOL
 		CRITICAL_MINIMUM = 2
 	};
 
+	double BatteryDrainRate();
+
+
 public:
 	eVTOL() = default;
 
 	void resetCharge();
 	BATTERY_NOTIFICATIONS trackRemainingCharge();
-	virtual int getTimeToCharge() = 0;
+	std::chrono::seconds getTimeToCharge();
 	
 	double calculatePassengerMiles(int& factor);
 

@@ -1,5 +1,7 @@
 #include "eVTOL.h"
 #include <chrono>
+#include <thread>
+
 
 void eVTOL::resetCharge() {
     /*
@@ -10,11 +12,12 @@ void eVTOL::resetCharge() {
     aircraft->currentBatteryLevel = 100.0;
 }
 
+
 eVTOL::BATTERY_NOTIFICATIONS eVTOL::trackRemainingCharge() {
     /*
     * This function is designed to keep a track of the current battery usage.
-    * Just like drones, for safe operations, the critical minimum is set to 5%
-    * and notification minimum is set to 15%. 
+    * the basis of operations is based on time. Hence the minimium power needed for 1 minute 
+    * is used as the threshold to trigger a charging event.
     * 
     * Once notification minimum is reached, a request will be sent to the Charging manager
     * to check for available chargers. If a charger is available, the aircraft is navigated to charge.
@@ -24,18 +27,38 @@ eVTOL::BATTERY_NOTIFICATIONS eVTOL::trackRemainingCharge() {
     */
 
     eVTOL* aircraft = this;
+    BATTERY_NOTIFICATIONS notifications = BATTERY_NOTIFICATIONS::POWER_AVAILABLE;
 
-    double startingBatteryLevel = this->currentBatteryLevel;
-    int currentSpeed = this->CruiseSpeed;
+    while (aircraft->currentBatteryLevel > aircraft->BatteryDrainRate()) {
+        double BatteryLevelPercentage = (aircraft->currentBatteryLevel / aircraft->BatteryCapacity) * 100;
 
-    std::chrono::duration<double> ActiveDuration = std::chrono::high_resolution_clock::now() - this->StartOperationTime;
-    std::chrono::hours DurationInHours = std::chrono::duration_cast<std::chrono::hours>(ActiveDuration);
+        if (BatteryLevelPercentage >= 15) notifications = BATTERY_NOTIFICATIONS::POWER_AVAILABLE;
+        else if (BatteryLevelPercentage < 15 && BatteryLevelPercentage >= 5) notifications = BATTERY_NOTIFICATIONS::LOW_POWER;
+        else notifications = BATTERY_NOTIFICATIONS::CRITICAL_MINIMUM;
 
-    double miles = currentSpeed * DurationInHours.count();
+        std::this_thread::sleep_for(std::chrono::minutes(1));
+        aircraft->currentBatteryLevel -= aircraft->BatteryDrainRate();
+    }
 
-    BATTERY_NOTIFICATIONS notifications {};
+    return notifications;
+}
 
-    return 0.0;
+
+std::chrono::seconds eVTOL::getTimeToCharge() {
+    eVTOL* aircraft = this;
+
+    std::chrono::seconds TimeToCharge = std::chrono::duration_cast<std::chrono::seconds>(aircraft->TimeToCharge);
+    return TimeToCharge;
+}
+
+
+double eVTOL::BatteryDrainRate() {
+    eVTOL* aircraft = this;
+
+    double NetConsumptionPerHour = this->CruiseSpeed * this->CruisingPowerConsumtion;
+    double ConsumptionPerMinute = NetConsumptionPerHour / 60;
+
+    return ConsumptionPerMinute;
 }
 
 

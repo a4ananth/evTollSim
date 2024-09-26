@@ -1,4 +1,5 @@
 #include "ChargingManager.h"
+#include <memory>
 
 void ChargingManager::ChargingStation::stopCharging(eVTOL* User) {
 	ChargingStation* station = this;
@@ -9,13 +10,13 @@ void ChargingManager::ChargingStation::stopCharging(eVTOL* User) {
 }
 
 
-void ChargingManager::ChargingStation::startCharging(const int& durationInSeconds, eVTOL* User) { 
+void ChargingManager::ChargingStation::startCharging(const std::chrono::seconds& durationInSeconds, eVTOL* User) {
 	ChargingStation* station = this;
 
 	this->IsOccupied = true;
 	this->curUser = User;
 
-	std::this_thread::sleep_for(std::chrono::seconds(durationInSeconds));
+	std::this_thread::sleep_for(durationInSeconds);
 
 	stopCharging(User);
 }
@@ -35,8 +36,9 @@ void ChargingManager::chargeAircraft(eVTOL* aircraft) {
 	* charging slot and allocates it to the first aircraft that requested
 	* the spot. 
 	* 
-	* For the current aircraft that is requesting a spot, 
-	* 
+	* For the current aircraft that is requesting a spot, if no spots are available
+	* then the aircraft is pushed to a queue which is maintained to send the next 
+	* aircraft in line to charge.
 	*/
 	for (ChargingStation* station : ChargingStations) {
 		if (!station->IsOccupied) {
@@ -57,7 +59,8 @@ void ChargingManager::chargeAircraft(eVTOL* aircraft) {
 
 ChargingManager::~ChargingManager() {
 	std::size_t station = 0;
-	while (!ChargingStations.empty()) delete ChargingStations[station++];
+	while (station < ChargingStations.size()) delete ChargingStations[station++];
+	ChargingStations.clear();
 }
 
 

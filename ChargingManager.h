@@ -17,7 +17,7 @@ class ChargingManager
 		ChargingStation(int id) : stationID(id), IsOccupied(false), curUser(nullptr) {}
 
 		void stopCharging(eVTOL* User);
-		void startCharging(const int& durationInSeconds, eVTOL* User);
+		void startCharging(const std::chrono::seconds& durationInSeconds, eVTOL* User);
 	};
 
 	std::vector<ChargingStation*> ChargingStations;
