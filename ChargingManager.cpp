@@ -1,5 +1,5 @@
 #include "ChargingManager.h"
-#include <memory>
+#include "eVTOL.h"
 
 void ChargingManager::ChargingStation::stopCharging(eVTOL* User) {
 	ChargingStation* station = this;
@@ -24,9 +24,7 @@ void ChargingManager::ChargingStation::startCharging(const std::chrono::seconds&
 
 ChargingManager::ChargingManager(std::size_t numChargers) {
 	ChargingStations.reserve(numChargers);
-	for (std::size_t i = 0; i < numChargers; ++i) {
-		ChargingStations.emplace_back(new ChargingStation(static_cast<int>(i + 1)));
-	}
+	for (std::size_t i = 0; i < numChargers; ++i) ChargingStations.emplace_back(new ChargingStation(static_cast<int>(i + 1)));
 }
 
 
@@ -49,18 +47,17 @@ void ChargingManager::chargeAircraft(eVTOL* aircraft) {
 			else {
 				eVTOL* nextAircraft = this->AircraftsinLIne.front();
 				station->startCharging(nextAircraft->getTimeToCharge(), nextAircraft);
-				this->AircraftsinLIne.pop();
+				this->AircraftsinLIne.pop();				// Remove the aircraft from the front of the line
 
-				this->AircraftsinLIne.push(aircraft);
+				this->AircraftsinLIne.push(aircraft);		// Add the current aircraft to the queue
 			}
 		}
 	}
 }
+
 
 ChargingManager::~ChargingManager() {
 	std::size_t station = 0;
 	while (station < ChargingStations.size()) delete ChargingStations[station++];
 	ChargingStations.clear();
 }
-
-

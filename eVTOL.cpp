@@ -1,24 +1,49 @@
+#include "ChargingManager.h"
 #include "eVTOL.h"
+
 #include <chrono>
 #include <thread>
-#include <string>
-#include <iostream>
 
 
 void eVTOL::startSimulation() {
-    eVTOL* aircraft = this;
-    const std::chrono::duration<double, std::ratio<60>> timeout(20);
-    aircraft->StartOperationTime = std::chrono::high_resolution_clock::now();
-    for (int i = 0; i < 5; ++i) {
-        std::this_thread::sleep_for(std::chrono::seconds(30));
-        BATTERY_NOTIFICATIONS notification = aircraft->getCurrentBatteryLevel();
-        std::string batteryLevel{}; 
-        if (notification == BATTERY_NOTIFICATIONS::POWER_AVAILABLE) batteryLevel = "POWER_AVAILABLE";
-        else if (notification == BATTERY_NOTIFICATIONS::LOW_POWER) batteryLevel = "LOW_POWER";
-        else batteryLevel = "CRITICAL_MINIMUM";
+    /*
+    * This function officially starts the simulation for the aircrafts.
+    * This simulation will keep restarting until the timeout is complete.
+    * 
+    * A few things to note for this simulation flow:
+    *   1. Once the simulation is started, the aircraft is assumed to be airborne 
+    *      for the whole duration until the charge drops to 1%.
+    *   2. Start time is updated to current time when the simulation starts.
+    *   3. As soon as the battery drains to 1%, the aircraft is queued to the charger.
+    *   4. Aircraft charges for TimeToCharge duration and is made available again.
+    * 
+    *   5. repeat steps 1 - 5.
+    */
 
-        std::cout << batteryLevel << std::endl;
+
+    eVTOL* aircraft = this;
+    ChargingManager charger(3);
+    const std::chrono::duration<double, std::ratio<60>> timeout(90);
+    aircraft->StartOperationTime = std::chrono::high_resolution_clock::now();
+
+    std::chrono::time_point<std::chrono::steady_clock> SimulationStartTime = std::chrono::steady_clock::now();
+
+    while ((SimulationStartTime - std::chrono::steady_clock::now()) <= timeout) {
+        std::thread BatteryManager(&eVTOL::trackRemainingCharge, this);
+
+        while (BatteryManager.joinable()) {
+            if (aircraft->currentBatteryLevel <= (0.01 * aircraft->BatteryCapacity)) {
+                BatteryManager.join();
+                break;
+            }
+        }
+
+        // If for any reason the loop breaks abrupty from the main call, join here to avoid leaks
+        if (BatteryManager.joinable()) BatteryManager.join();
+
+        charger.chargeAircraft(aircraft);
     }
+
 }
 
 
@@ -28,11 +53,13 @@ void eVTOL::resetCharge() {
     */
 
     eVTOL* aircraft = this;
-    aircraft->currentBatteryLevel = 100.0;
+    aircraft->currentBatteryLevel = aircraft->BatteryCapacity;
+
+    aircraft->restartAircraft();
 }
 
 
-eVTOL::BATTERY_NOTIFICATIONS eVTOL::trackRemainingCharge() {
+void eVTOL::trackRemainingCharge() {
     /*
     * This function is designed to keep a track of the current battery usage.
     * the basis of operations is based on time. Hence the minimium power needed for 1 minute
@@ -46,25 +73,23 @@ eVTOL::BATTERY_NOTIFICATIONS eVTOL::trackRemainingCharge() {
     */
 
     eVTOL* aircraft = this;
-    BATTERY_NOTIFICATIONS notifications {};
 
     while (aircraft->currentBatteryLevel > aircraft->BatteryDrainRate()) {
-        notifications = aircraft->getCurrentBatteryLevel();
-        std::this_thread::sleep_for(std::chrono::minutes(1));
+        std::chrono::seconds TimePerMile(aircraft->TimeToTravelOneMile());
+        std::this_thread::sleep_for(TimePerMile);
         updateBatteryLevel();
     }
 
     aircraft->EndOperationTime = std::chrono::high_resolution_clock::now();
-    return notifications;
 }
 
 
-std::chrono::seconds eVTOL::getTimeToCharge() {
+std::chrono::seconds eVTOL::getTimeToCharge() const {
     /*
     * This function returns the time to charge set by the manufacturer.
     */
 
-    eVTOL* aircraft = this;
+    const eVTOL* aircraft = this;
 
     std::chrono::seconds TimeToCharge = std::chrono::duration_cast<std::chrono::seconds>(aircraft->TimeToCharge);
     return TimeToCharge;
@@ -79,9 +104,9 @@ eVTOL::BATTERY_NOTIFICATIONS eVTOL::getCurrentBatteryLevel() {
     eVTOL* aircraft = this;
 
     BATTERY_NOTIFICATIONS notifications {};
-
+    
     double BatteryLevelPercentage = (aircraft->currentBatteryLevel / aircraft->BatteryCapacity) * 100;
-    std::cout << "Current Battery Level %: " << BatteryLevelPercentage << std::endl;
+
     if (BatteryLevelPercentage > 15) notifications = BATTERY_NOTIFICATIONS::POWER_AVAILABLE;
     else if (BatteryLevelPercentage <= 15 && BatteryLevelPercentage > 5) notifications = BATTERY_NOTIFICATIONS::LOW_POWER;
     else notifications = BATTERY_NOTIFICATIONS::CRITICAL_MINIMUM;
@@ -90,8 +115,8 @@ eVTOL::BATTERY_NOTIFICATIONS eVTOL::getCurrentBatteryLevel() {
 }
 
 
-double eVTOL::BatteryDrainRate() {
-    eVTOL* aircraft = this;
+double eVTOL::BatteryDrainRate() const {
+    const eVTOL* aircraft = this;
 
     double NetConsumptionPerHour = this->CruiseSpeed * this->CruisingPowerConsumtion;
     double ConsumptionPerMinute = NetConsumptionPerHour / 60;
@@ -108,14 +133,23 @@ void eVTOL::updateBatteryLevel() {
 
     do {
         updatedBatteryLevel = currentLevel - aircraft->BatteryDrainRate();
+        if (updatedBatteryLevel < 0) updatedBatteryLevel = 0;
     } while (!aircraft->currentBatteryLevel.compare_exchange_weak(currentLevel, updatedBatteryLevel));
 }
+
 
 void eVTOL::restartAircraft() {
     eVTOL* aircraft = this;
 
     aircraft->airTime += (this->EndOperationTime - this->StartOperationTime);
     this->StartOperationTime = std::chrono::high_resolution_clock::now();
+}
+
+
+std::chrono::seconds eVTOL::TimeToTravelOneMile() const {
+    const eVTOL* aircraft = this;
+
+    return std::chrono::seconds(3600 / aircraft->CruiseSpeed);
 }
 
 
@@ -131,22 +165,13 @@ double eVTOL::calculatePassengerMiles(int& factor)
 }
 
 
-eVTOL::eVTOL(int CruiseSpeed, int maxPassengerCount, int BatteryCapacity, double CruisingPowerConsumtion, double FaultsPerHour, double ChargeDuration) {
+eVTOL::eVTOL(int CruiseSpeed, int maxPassengerCount, int BatteryCapacity, double CruisingPowerConsumtion, double FaultsPerHour, double ChargeDuration) :
+    CruiseSpeed(CruiseSpeed), maxPassengerCount(maxPassengerCount), BatteryCapacity(BatteryCapacity), CruisingPowerConsumtion(CruisingPowerConsumtion), FaultsPerHour(FaultsPerHour), TimeToCharge(std::chrono::duration<double, std::ratio<3600>>(ChargeDuration))
+{
+    this->numFaults = 0;
+    this->PassengerMiles = 0.0;
+    this->mileagePerCharge = 0;
+    this->currentBatteryLevel = BatteryCapacity;
 
-    CruiseSpeed = CruiseSpeed;
-    maxPassengerCount = maxPassengerCount;
-    BatteryCapacity = BatteryCapacity;
-    CruisingPowerConsumtion = CruisingPowerConsumtion;
-    FaultsPerHour = FaultsPerHour;
-
-    TimeToCharge = std::chrono::duration<double, std::ratio<3600>>(ChargeDuration);
-    numFaults = 0;
-    PassengerMiles = 0.0;
-    mileagePerCharge = 0;
-    currentBatteryLevel = 100.0;
-
-
-    StartOperationTime = std::chrono::high_resolution_clock::now();
-    EndOperationTime = std::chrono::high_resolution_clock::now();
-    airTime = std::chrono::duration<double>::zero();
+    this->airTime = std::chrono::duration<double>::zero();
 }
