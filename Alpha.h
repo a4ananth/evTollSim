@@ -8,5 +8,8 @@
 
 class Alpha : public eVTOL {
 	std::vector<std::shared_ptr<eVTOL*>> inUse;
+	std::string ManufacturerName;
+public:
+
 };
 

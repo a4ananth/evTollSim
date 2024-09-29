@@ -40,16 +40,16 @@ void ChargingManager::chargeAircraft(eVTOL* aircraft) {
 	*/
 	for (ChargingStation* station : ChargingStations) {
 		if (!station->IsOccupied) {
-			if (this->AircraftsinLIne.empty()) {
+			if (this->AircraftsInLIne.empty()) {
 				station->startCharging(aircraft->getTimeToCharge(), aircraft);
 				return;
 			}
 			else {
-				eVTOL* nextAircraft = this->AircraftsinLIne.front();
+				eVTOL* nextAircraft = this->AircraftsInLIne.front();
 				station->startCharging(nextAircraft->getTimeToCharge(), nextAircraft);
-				this->AircraftsinLIne.pop();				// Remove the aircraft from the front of the line
+				this->AircraftsInLIne.pop();				// Remove the aircraft from the front of the line
 
-				this->AircraftsinLIne.push(aircraft);		// Add the current aircraft to the queue
+				this->AircraftsInLIne.push(aircraft);		// Add the current aircraft to the queue
 			}
 		}
 	}

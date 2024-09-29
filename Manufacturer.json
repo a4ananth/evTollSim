@@ -1,0 +1,55 @@
+{
+  "Alpha": {
+    "Cruise_Speed": 120,
+    "Battery_Capacity": 320,
+    "Time_to_Charge": 0.6,
+    "Energy_use_at_Cruise": 1.6,
+    "Passenger_Count": 4,
+    "Probability_of_fault_per_hour": 0.25
+  },
+
+  "Bravo": {
+    "Cruise_Speed": 100,
+    "Battery_Capacity": 100,
+    "Time_to_Charge": 0.2,
+    "Energy_use_at_Cruise": 1.5,
+    "Passenger_Count": 5,
+    "Probability_of_fault_per_hour": 0.10
+  },
+
+  "Charlie": {
+    "Cruise_Speed": 160,
+    "Battery_Capacity": 220,
+    "Time_to_Charge": 0.8,
+    "Energy_use_at_Cruise": 2.2,
+    "Passenger_Count": 3,
+    "Probability_of_fault_per_hour": 0.05
+  },
+
+  "Delta": {
+    "Cruise_Speed": 90,
+    "Battery_Capacity": 120,
+    "Time_to_Charge": 0.62,
+    "Energy_use_at_Cruise": 0.8,
+    "Passenger_Count": 2,
+    "Probability_of_fault_per_hour": 0.22
+  },
+
+  "Echo": {
+    "Cruise_Speed": 30,
+    "Battery_Capacity": 150,
+    "Time_to_Charge": 0.3,
+    "Energy_use_at_Cruise": 5.8,
+    "Passenger_Count": 2,
+    "Probability_of_fault_per_hour": 0.61
+  }
+
+}
+
+
+  (mph)	
+ (kWh)	320	100	220	120	150
+ (hours)	0.6	0.2	0.8	0.62	0.3
+ (kWh/mile)	1.6	1.5	2.2	0.8	5.8
+	4	5	3	2	2
+	0.25	0.10	.05	.22	.61

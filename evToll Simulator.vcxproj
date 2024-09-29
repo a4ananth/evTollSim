@@ -129,6 +129,7 @@
   <ItemGroup>
     <ClCompile Include="Alpha.cpp" />
     <ClCompile Include="ChargingManager.cpp" />
+    <ClCompile Include="DataParser.cpp" />
     <ClCompile Include="eVTOL.cpp" />
     <ClCompile Include="evToll Simulator.cpp" />
     <ClCompile Include="Logger.cpp" />
@@ -136,10 +137,12 @@
   <ItemGroup>
     <ClInclude Include="Alpha.h" />
     <ClInclude Include="ChargingManager.h" />
+    <ClInclude Include="DataParser.h" />
     <ClInclude Include="eVTOL.h" />
     <ClInclude Include="Logger.h" />
   </ItemGroup>
   <ItemGroup>
+    <None Include="Manufacturer.json" />
     <None Include="packages.config" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />

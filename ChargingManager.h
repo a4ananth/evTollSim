@@ -21,7 +21,7 @@ class ChargingManager
 	};
 
 	std::vector<ChargingStation*> ChargingStations;
-	std::queue<eVTOL*> AircraftsinLIne;
+	std::queue<eVTOL*> AircraftsInLIne;
 
 public:
 	ChargingManager(std::size_t numChargers);

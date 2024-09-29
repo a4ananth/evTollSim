@@ -1,6 +1,7 @@
 #pragma once
 #include <chrono>
 #include <atomic>
+#include <string>
 
 
 class eVTOL
@@ -9,7 +10,7 @@ class eVTOL
 	const int CruiseSpeed;												// Maximum speed at which aircraft can cruise
 	const int maxPassengerCount;										// Maximum passengers aircraft can transport
 	const int BatteryCapacity;											// Net capacity of the battery 
-	const double CruisingPowerConsumtion;								// power used while cruising at cruise speed
+	const double CruisingPowerConsumption;								// power used while cruising at cruise speed
 	const double FaultsPerHour;											// Probability of faults = > % increase in the consumption of battery kWh value per hour => reduced airtime
 	const std::chrono::duration<double, std::ratio<3600>> TimeToCharge;	// Time in hours required to charge the battery back to 100%
 
@@ -20,9 +21,9 @@ class eVTOL
 	std::atomic<double> currentBatteryLevel;	// % charge remaining in the battery => 100% when object is created and resets to 100% after every charge
 
 	// Internal metrics for operations
-	std::chrono::time_point<std::chrono::high_resolution_clock> StartOperationTime;	// Timestamp of beginning of flight in seconds
-	std::chrono::time_point<std::chrono::high_resolution_clock> EndOperationTime;	// Timestamp of ending of flight in seconds
-	std::chrono::duration<double> airTime;											// Total airtime in seconds for aircraft
+	std::chrono::time_point<std::chrono::system_clock> StartOperationTime;	// Timestamp of beginning of flight in seconds
+	std::chrono::time_point<std::chrono::system_clock> EndOperationTime;	// Timestamp of ending of flight in seconds
+	std::chrono::duration<double> airTime;									// Total airtime in seconds for aircraft
 
 	enum class BATTERY_NOTIFICATIONS {
 		POWER_AVAILABLE = 0,
@@ -40,13 +41,20 @@ public:
 	eVTOL(const int CruiseSpeed, const int maxPassengerCount, const int BatteryCapacity, const double CruisingPowerConsumtion, const double FaultsPerHour, const double ChargeDuration);
 
 	void startSimulation();
+	void retireSimulation();
 	void resetCharge();
 	void trackRemainingCharge();
+	double calculatePassengerMiles(int& factor);
 
 	std::chrono::seconds getTimeToCharge() const;
 	BATTERY_NOTIFICATIONS getCurrentBatteryLevel();
 
-	double calculatePassengerMiles(int& factor);
+	virtual std::string getManufacturerName() const = 0;
+	virtual std::string getStartTime() const = 0;
+	virtual std::string getEndTime() const = 0;
+	virtual double MilesPerSession() const = 0;
+	virtual double FaultsPerSession() const = 0;
+	virtual double getPassengerMiles() const = 0;
 
 	~eVTOL() = default;
 };
