@@ -21,9 +21,6 @@
     <ClCompile Include="eVTOL.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="Alpha.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
     <ClCompile Include="ChargingManager.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
@@ -33,12 +30,15 @@
     <ClCompile Include="DataParser.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="Fleet.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="eVTOL.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="Alpha.h">
+    <ClInclude Include="Fleet.h">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="ChargingManager.h">

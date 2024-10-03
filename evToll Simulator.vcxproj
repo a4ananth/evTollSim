@@ -127,7 +127,7 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
-    <ClCompile Include="Alpha.cpp" />
+    <ClCompile Include="Fleet.cpp" />
     <ClCompile Include="ChargingManager.cpp" />
     <ClCompile Include="DataParser.cpp" />
     <ClCompile Include="eVTOL.cpp" />
@@ -135,7 +135,7 @@
     <ClCompile Include="Logger.cpp" />
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="Alpha.h" />
+    <ClInclude Include="Fleet.h" />
     <ClInclude Include="ChargingManager.h" />
     <ClInclude Include="DataParser.h" />
     <ClInclude Include="eVTOL.h" />

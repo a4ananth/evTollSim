@@ -1,30 +1,45 @@
 #include "DataParser.h"
 #include <fstream>
+#include <iostream>
 
 
-json DataParser::getInputdata() {
-	json InputData{};
+DataParser::DataParser() {
 	std::ifstream InputDataFile("Manufacturer.json");
-
 	if (!InputDataFile.is_open()) throw std::runtime_error("Unable to open input data json");
-	
+
 	InputDataFile >> InputData;
 
-	return InputData;
+	for (json& record : InputData["Manufacturers"]) ManufacturersList.emplace_back(record["Name"]);
 }
 
 
-void DataParser::createLogData(const eVTOL* aircraft) {
+json DataParser::getInputdata(const std::string& ManufacturerName) {
+	json VehicleData = json(nullptr);
+	
+	for (json& data : InputData["Manufacturers"]) {
+		if (data["Name"] == ManufacturerName) VehicleData = data;
+	}
+
+	return VehicleData;
+}
+
+
+std::vector<std::string> DataParser::getManufacturersList() {
+	return ManufacturersList;
+}
+
+
+void DataParser::createLogData(eVTOL* aircraft) {
 	json AircraftLog{};
 	std::string fileName = aircraft->getManufacturerName() + ".json";
 	std::ofstream AircraftLogFile(fileName);
 
 	if (AircraftLogFile.is_open()) {
 		json SessionData{};
-		SessionData["Start_Time"] = aircraft->getStartTime();
-		SessionData["End_Time"] = aircraft->getEndTime();
-		SessionData["Miles_Travelled"] = aircraft->MilesPerSession();
-		SessionData["Faults"] = aircraft->FaultsPerSession();
+		SessionData["Start_Time"] = aircraft->getTimeForLogs(aircraft->getStartOperationTime());
+		SessionData["End_Time"] = aircraft->getTimeForLogs(aircraft->getEndOperationTime());
+		SessionData["Miles_Travelled"] = aircraft->getMilesPerSession();
+		SessionData["Faults"] = aircraft->getFaultsPerSession();
 		SessionData["Passenger_Miles"] = aircraft->getPassengerMiles();
 
 		AircraftLog["Sessions"].emplace_back(SessionData);

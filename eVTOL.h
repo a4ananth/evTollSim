@@ -2,7 +2,9 @@
 #include <chrono>
 #include <atomic>
 #include <string>
+#include <nlohmann/json.hpp>
 
+using json = nlohmann::json;
 
 class eVTOL
 {
@@ -24,6 +26,7 @@ class eVTOL
 	std::chrono::time_point<std::chrono::system_clock> StartOperationTime;	// Timestamp of beginning of flight in seconds
 	std::chrono::time_point<std::chrono::system_clock> EndOperationTime;	// Timestamp of ending of flight in seconds
 	std::chrono::duration<double> airTime;									// Total airtime in seconds for aircraft
+	double BatteryDrainRate;
 
 	enum class BATTERY_NOTIFICATIONS {
 		POWER_AVAILABLE = 0,
@@ -31,30 +34,36 @@ class eVTOL
 		CRITICAL_MINIMUM = 2
 	};
 
-	double BatteryDrainRate() const;
-	void updateBatteryLevel();
-	void restartAircraft();
-	std::chrono::seconds TimeToTravelOneMile() const;
-
-
-public:
-	eVTOL(const int CruiseSpeed, const int maxPassengerCount, const int BatteryCapacity, const double CruisingPowerConsumtion, const double FaultsPerHour, const double ChargeDuration);
-
-	void startSimulation();
 	void retireSimulation();
 	void resetCharge();
 	void trackRemainingCharge();
-	double calculatePassengerMiles(int& factor);
+	void updateBatteryLevel();
+	void restartAircraft();
+	void calculateBatteryDrainRate();
+	
 
-	std::chrono::seconds getTimeToCharge() const;
+	std::chrono::seconds TimeToTravelOneMile() const;
 	BATTERY_NOTIFICATIONS getCurrentBatteryLevel();
 
-	virtual std::string getManufacturerName() const = 0;
-	virtual std::string getStartTime() const = 0;
-	virtual std::string getEndTime() const = 0;
-	virtual double MilesPerSession() const = 0;
-	virtual double FaultsPerSession() const = 0;
-	virtual double getPassengerMiles() const = 0;
+public:
+	eVTOL(const json& InputData);
+
+	void startSimulation();
+	
+	double getBatteryDrainRate() const;
+	double calculatePassengerMiles(const std::size_t& factor) const;
+
+	std::chrono::time_point<std::chrono::system_clock> getEndOperationTime() const;
+	std::chrono::time_point<std::chrono::system_clock> getStartOperationTime() const;
+	std::chrono::duration<double> getAirTime() const;
+	std::chrono::seconds getTimeToCharge() const;
+
+	std::string getTimeForLogs(const std::chrono::time_point<std::chrono::system_clock>& timePoint) const;
+	
+	virtual std::string getManufacturerName(const eVTOL* aircraft) const = 0;
+	virtual double getMilesPerSession() = 0;
+	virtual double getFaultsPerSession() = 0;
+	virtual double getPassengerMiles() = 0;
 
 	~eVTOL() = default;
 };

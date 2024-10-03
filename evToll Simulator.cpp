@@ -1,33 +1,32 @@
 // evToll Simulator.cpp : This file contains the 'main' function. Program execution begins and ends there.
 //
 
+#include <vector>
+#include <memory>
+#include <string>
+#include <fstream>
 #include <iostream>
-#include "eVTOL.h"
-
 #include <nlohmann/json.hpp>
+
+#include "eVTOL.h"
+#include "Fleet.h"
+#include "DataParser.h"
+
 
 using json = nlohmann::json;
 
+
 int main()
 {
-
-	json j;
-	j["name"] = "Ananth";
-	j["age"] = 30;
-	j["city"] = "Omaha";
-
-	std::cout << j.dump(4) << std::endl;
-
-	std::string json_string = R"({"name": "Alice", "age": 25, "city": "London"})";
-	json j2 = json::parse(json_string);
-
-	// Access values from the JSON object
-	std::cout << "Name: " << j2["name"] << std::endl;
-	std::cout << "Age: " << j2["age"] << std::endl;
-	std::cout << "City: " << j2["city"] << std::endl;
-
-
-	/*std::shared_ptr<eVTOL> myCraft = std::make_shared<eVTOL>(120, 4, 320, 1.6, 0.25, 0.6);
-	myCraft->startSimulation();*/
+	DataParser data;
+	
+	std::vector<std::string> eVTOLManufacturers = data.getManufacturersList();
+	std::vector<std::unique_ptr<eVTOL>> vehicles{};
+	
+	for (std::string& company : eVTOLManufacturers) {
+		json VehicleData = data.getInputdata(company);
+		std::unique_ptr<eVTOL> vehicle = std::make_unique<Fleet>(company, VehicleData);
+	}
+	
 	return 0;
 }
