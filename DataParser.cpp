@@ -31,7 +31,7 @@ std::vector<std::string> DataParser::getManufacturersList() {
 
 void DataParser::createLogData(eVTOL* aircraft) {
 	json AircraftLog{};
-	std::string fileName = aircraft->getManufacturerName() + ".json";
+	std::string fileName = aircraft->getManufacturerName(aircraft) + ".json"; // add a way to create separate json files for each vehicle of each manufacturer
 	std::ofstream AircraftLogFile(fileName);
 
 	if (AircraftLogFile.is_open()) {
@@ -47,7 +47,7 @@ void DataParser::createLogData(eVTOL* aircraft) {
 		SaveLog(AircraftLog, fileName);
 	}
 
-	else AircraftLog[aircraft->getManufacturerName()]["Sessions"] = json::array();
+	else AircraftLog[aircraft->getManufacturerName(aircraft)]["Sessions"] = json::array();
 }
 
 

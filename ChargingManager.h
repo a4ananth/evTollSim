@@ -1,31 +1,79 @@
 #pragma once
-#include "eVTOL.h"
-#include <thread>
+
+#include <list>
+#include <mutex>
+#include <queue>
 #include <chrono>
 #include <vector>
-#include <queue>
 #include <memory>
+#include <thread>
+#include <unordered_map>
+#include <condition_variable>
+
+#include "eVTOL.h"
 
 
 class ChargingManager
 {
+	// Charging manager handles all charging stations. Hence its Singleton
+	static ChargingManager* ChargingMgrInstance;
+
+	// Flag to end simulation
+	static bool simulationComplete; 
+
+	// Flag to denote if system has already initialized. This will reset upon destruction
+	static bool IsInitialized;
+
+	// Ticket number that will be assigned to each incoming evTOL object
+	static int chargingTicketNumber;
+
+	ChargingManager(const std::size_t& numChargers);
+
 	struct ChargingStation {
-		int stationID;
+		std::size_t stationID;
 		bool IsOccupied;
-		eVTOL* curUser;
+		std::unique_ptr<eVTOL> curUser;
 
-		ChargingStation(int id) : stationID(id), IsOccupied(false), curUser(nullptr) {}
+		ChargingStation(const std::size_t& id) : stationID(id), IsOccupied(false), curUser(nullptr) {}
 
-		void stopCharging(eVTOL* User);
-		void startCharging(const std::chrono::seconds& durationInSeconds, eVTOL* User);
+		void stopCharging(std::unique_ptr<eVTOL>& User, std::unique_ptr<ChargingStation>& station);
+		void startCharging(std::unique_ptr<eVTOL>& User, std::unique_ptr<ChargingStation>& station);
 	};
 
-	std::vector<ChargingStation*> ChargingStations;
-	std::queue<eVTOL*> AircraftsInLIne;
+	struct Request {
+		std::unique_ptr<eVTOL> candidate;
+		int assignedTicketNumber;
+
+		Request(std::unique_ptr<eVTOL>& requestor, int& ticketNumber) : candidate(std::move(requestor)), assignedTicketNumber(ticketNumber) {}
+	};
+
+	std::mutex charger_mtx;
+	std::mutex requests_mtx;
+
+	std::condition_variable ChargingStatus;
+	std::condition_variable ChargerManager;
+	
+	
+	// vector of threads deployed for all charging related operations
+	std::vector<std::thread> Operations;
+
+	std::list<Request> requests;
+	std::queue<Request> AircraftsInLine;
+	std::unordered_map<int, std::unique_ptr<eVTOL>> completedRequests;
+
+	// Thread function that would be invoked for each charging station
+	void ChargingStationManager(std::unique_ptr<ChargingStation>& station);
+
+	// Thread function to continuously accept aircraft charging requests
+	void MonitorChargingRequests();
+
+	int generateTicketNumber();
 
 public:
-	ChargingManager(std::size_t numChargers);
-	void chargeAircraft(eVTOL* aircraft);
+	static void InitializeChargers(const std::size_t& numChargers);
+	static ChargingManager* getInstance();
+
+	void requestCharger(std::unique_ptr<eVTOL>& aircraft);
+
 	~ChargingManager();
 };
-
