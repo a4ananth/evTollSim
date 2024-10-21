@@ -1,63 +1,144 @@
 #include "ChargingManager.h"
 #include "eVTOL.h"
 
-void ChargingManager::ChargingStation::stopCharging(eVTOL* User) {
-	ChargingStation* station = this;
 
-	this->IsOccupied = false;
-	this->curUser = nullptr;
-	User->resetCharge();
+ChargingManager* ChargingManager::ChargingMgrInstance = nullptr;
+bool ChargingManager::simulationComplete = false;
+int ChargingManager::chargingTicketNumber = 0;
+bool ChargingManager::IsInitialized = false;
+
+
+
+void ChargingManager::ChargingStation::stopCharging(std::unique_ptr<eVTOL>& User, std::unique_ptr<ChargingStation>& station) {
+	station->IsOccupied = false;
+	User = std::move(station->curUser);
 }
 
 
-void ChargingManager::ChargingStation::startCharging(const std::chrono::seconds& durationInSeconds, eVTOL* User) {
-	ChargingStation* station = this;
+void ChargingManager::ChargingStation::startCharging(std::unique_ptr<eVTOL>& User, std::unique_ptr<ChargingStation>& station) {
+	station->IsOccupied = true;
+	station->curUser = std::move(User);
 
-	this->IsOccupied = true;
-	this->curUser = User;
+	std::this_thread::sleep_for(std::chrono::seconds(station->curUser->getTimeToCharge()));
 
-	std::this_thread::sleep_for(durationInSeconds);
-
-	stopCharging(User);
+	stopCharging(User, station);
 }
 
 
-ChargingManager::ChargingManager(std::size_t numChargers) {
-	ChargingStations.reserve(numChargers);
-	for (std::size_t i = 0; i < numChargers; ++i) ChargingStations.emplace_back(new ChargingStation(static_cast<int>(i + 1)));
+inline ChargingManager::ChargingManager(const std::size_t& numChargers) {
+	if (!IsInitialized) {
+		Operations.reserve(numChargers + 1);
+		for (std::size_t i = 0; i < numChargers; ++i) {
+			std::unique_ptr<ChargingStation> station = std::make_unique<ChargingStation>(i + 1);
+			Operations.emplace_back(&ChargingManager::ChargingStationManager, this, std::move(station));
+		}
+
+		Operations.emplace_back(&ChargingManager::MonitorChargingRequests, this);
+		IsInitialized = true;
+	}
 }
 
 
-void ChargingManager::chargeAircraft(eVTOL* aircraft) {
-	/*
-	* This function is a manager interface. It checks for the next available 
-	* charging slot and allocates it to the first aircraft that requested
-	* the spot. 
-	* 
-	* For the current aircraft that is requesting a spot, if no spots are available
-	* then the aircraft is pushed to a queue which is maintained to send the next 
-	* aircraft in line to charge.
-	*/
-	for (ChargingStation* station : ChargingStations) {
-		if (!station->IsOccupied) {
-			if (this->AircraftsInLIne.empty()) {
-				station->startCharging(aircraft->getTimeToCharge(), aircraft);
-				return;
+void ChargingManager::ChargingStationManager(std::unique_ptr<ChargingStation>& station) {
+	while (true) {
+		std::unique_lock<std::mutex> lock(charger_mtx);
+		ChargerManager.wait(lock, [&] {
+			return !AircraftsInLine.empty() || simulationComplete;
+			});
+
+		// Exit the loop if all candidates have been processed & simulation is complete
+		if (simulationComplete && AircraftsInLine.empty()) break;
+
+		if (!AircraftsInLine.empty()) {
+			Request request = std::move(AircraftsInLine.front());
+			std::unique_ptr<eVTOL> candidate = std::move(request.candidate);
+			int ticketNumber = request.assignedTicketNumber;
+			bool chargingComplete = false;
+
+			AircraftsInLine.pop();
+
+			lock.unlock();
+
+			station->startCharging(candidate, station);
+
+			{
+				std::lock_guard<std::mutex> requestLock(requests_mtx);
+				if (completedRequests.find(ticketNumber) != completedRequests.end()) completedRequests[ticketNumber] = std::move(candidate);
+				if (!station->IsOccupied) ChargingStatus.notify_one();
 			}
-			else {
-				eVTOL* nextAircraft = this->AircraftsInLIne.front();
-				station->startCharging(nextAircraft->getTimeToCharge(), nextAircraft);
-				this->AircraftsInLIne.pop();				// Remove the aircraft from the front of the line
 
-				this->AircraftsInLIne.push(aircraft);		// Add the current aircraft to the queue
-			}
+			// Notify other threads that a station is free
+			ChargerManager.notify_all();
 		}
 	}
 }
 
 
+void ChargingManager::MonitorChargingRequests() {
+	while (!simulationComplete) {
+
+		if (!requests.empty()) {
+			std::unique_lock<std::mutex> listLock(requests_mtx);
+			while (!requests.empty()) {
+				std::unique_lock<std::mutex> chargerLock(charger_mtx);
+				AircraftsInLine.push(requests.front());
+				requests.pop_front();
+			}
+
+			ChargerManager.notify_all();
+		}
+	}
+
+	ChargerManager.notify_all();
+}
+
+int ChargingManager::generateTicketNumber() {
+	std::lock_guard<std::mutex> lock(requests_mtx);
+	++chargingTicketNumber;
+
+	return chargingTicketNumber;
+}
+
+
+void ChargingManager::InitializeChargers(const std::size_t& numChargers) {
+	if (!IsInitialized) ChargingMgrInstance = new ChargingManager(numChargers);
+	return;
+}
+
+
+ChargingManager* ChargingManager::getInstance() {
+	if (!IsInitialized) return nullptr;
+	return ChargingMgrInstance;
+}
+
+
+void ChargingManager::requestCharger(std::unique_ptr<eVTOL>& aircraft) {
+	int ticketNumber = generateTicketNumber();
+	{
+		std::lock_guard<std::mutex> lock(requests_mtx);
+		Request request(aircraft, ticketNumber);
+		requests.emplace_back(request);
+		completedRequests[ticketNumber] = nullptr;
+	}
+
+	{
+		std::unique_lock<std::mutex> lock(requests_mtx);
+		ChargingStatus.wait(lock, [&] { return completedRequests[ticketNumber] != nullptr; });
+	}
+
+	if (completedRequests[ticketNumber]) aircraft = std::move(completedRequests[ticketNumber]);	
+}
+
+
 ChargingManager::~ChargingManager() {
-	std::size_t station = 0;
-	while (station < ChargingStations.size()) delete ChargingStations[station++];
-	ChargingStations.clear();
+	ChargerManager.notify_all();
+
+	for (std::thread& StationThreads : Operations) {
+		if (StationThreads.joinable()) StationThreads.join();
+	}
+
+	delete ChargingMgrInstance;
+	ChargingMgrInstance = nullptr;
+
+	IsInitialized = false;
 }
