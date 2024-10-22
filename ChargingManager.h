@@ -3,6 +3,7 @@
 #include <list>
 #include <mutex>
 #include <queue>
+#include <atomic>
 #include <chrono>
 #include <vector>
 #include <memory>
@@ -11,6 +12,7 @@
 #include <condition_variable>
 
 #include "eVTOL.h"
+#include "DataManager.h"
 
 
 class ChargingManager
@@ -19,13 +21,13 @@ class ChargingManager
 	static ChargingManager* ChargingMgrInstance;
 
 	// Flag to end simulation
-	static bool simulationComplete; 
+	static std::atomic<bool> simulationComplete;
 
 	// Flag to denote if system has already initialized. This will reset upon destruction
 	static bool IsInitialized;
 
 	// Ticket number that will be assigned to each incoming evTOL object
-	static int chargingTicketNumber;
+	static std::atomic<int> chargingTicketNumber;
 
 	ChargingManager(const std::size_t& numChargers);
 
@@ -69,9 +71,16 @@ class ChargingManager
 
 	int generateTicketNumber();
 
+	// This function clears the queue at the end of simulation and logs all data for aircrafts
+	void clearQueue();
+
+	// This function clears the queue at the end of simulation and logs all data for aircrafts
+	void clearList();
+
 public:
 	static void InitializeChargers(const std::size_t& numChargers);
 	static ChargingManager* getInstance();
+	static void completeSimulation();
 
 	void requestCharger(std::unique_ptr<eVTOL>& aircraft);
 

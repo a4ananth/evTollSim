@@ -9,7 +9,7 @@
 
 #include "eVTOL.h"
 #include "Fleet.h"
-#include "DataParser.h"
+#include "DataManager.h"
 
 
 using json = nlohmann::json;
@@ -17,7 +17,7 @@ using json = nlohmann::json;
 
 int main()
 {
-	DataParser data;
+	DataManager data;
 	
 	std::vector<std::string> eVTOLManufacturers = data.getManufacturersList();
 	std::vector<std::unique_ptr<eVTOL>> vehicles{};

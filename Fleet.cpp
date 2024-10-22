@@ -1,5 +1,6 @@
+#pragma once
+
 #include "Fleet.h"
-#include <chrono>
 
 
 Fleet::Fleet(const std::string& CarrierName, const json& InputData) :
@@ -8,28 +9,27 @@ Fleet::Fleet(const std::string& CarrierName, const json& InputData) :
     this->MilesPerSession = 0.0;
     this->FaultsPerSession = 0.0;
     this->PassengerMiles = 0.0;
+    ++NumberOfAircraftsSpawned;
 }
 
 
-std::string Fleet::getManufacturerName(const eVTOL* aircraft) const {
-    return ManufacturerName;
+std::string Fleet::getManufacturerName() const {
+    return this->ManufacturerName;
 }
 
 
-double Fleet::getMilesPerSession()  {
-    MilesPerSession += (getBatteryDrainRate() * getAirTime().count());
-    return MilesPerSession;
+double Fleet::getMilesPerSession() const {
+    return this->getMilesTravelled();
 }
 
-double Fleet::getFaultsPerSession() {
-    FaultsPerSession += getAirTime().count() / 3600;
-    return FaultsPerSession;
+
+double Fleet::getFaultsPerSession() const {
+    return (this->getAirTime().count() / 3600);
 }
 
-double Fleet::getPassengerMiles() {
-    std::size_t factor = AircraftsSpawned.size();
-    PassengerMiles += calculatePassengerMiles(factor);
-    return PassengerMiles;
+
+double Fleet::calculatePassengerMiles() const {
+    return (this->getPassengerMiles() * NumberOfAircraftsSpawned);
 }
 
 

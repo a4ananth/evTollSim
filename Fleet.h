@@ -1,13 +1,13 @@
 #pragma once
+
 #include "eVTOL.h"
 #include <string>
-#include <vector>
 #include <memory>
 
 
 class Fleet : public eVTOL {
     std::string ManufacturerName;
-    std::vector<std::unique_ptr<eVTOL>> AircraftsSpawned;
+    std::size_t NumberOfAircraftsSpawned;
 
     double MilesPerSession;
     double FaultsPerSession;
@@ -15,10 +15,10 @@ class Fleet : public eVTOL {
 public:
     Fleet(const std::string& CarrierName, const json& InputData);
 
-    std::string getManufacturerName(const eVTOL* aircraft) const override;
-    double getMilesPerSession() override;
-    double getFaultsPerSession() override;
-    double getPassengerMiles() override;
+    double getMilesPerSession() const override;
+    double getFaultsPerSession() const override;
+    double calculatePassengerMiles() const override;
+    std::string getManufacturerName() const override;
 
     ~Fleet() = default;
 };
