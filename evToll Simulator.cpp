@@ -7,9 +7,10 @@
 #include <iostream>
 #include <nlohmann/json.hpp>
 
-#include "eVTOL.h"
 #include "Fleet.h"
 #include "DataManager.h"
+#include "FleetManager.h"
+#include "ChargingManager.h"
 
 
 using json = nlohmann::json;
@@ -17,15 +18,9 @@ using json = nlohmann::json;
 
 int main()
 {
-	DataManager data;
-	
-	std::vector<std::string> eVTOLManufacturers = data.getManufacturersList();
-	std::vector<std::unique_ptr<eVTOL>> vehicles{};
-	
-	for (std::string& company : eVTOLManufacturers) {
-		json VehicleData = data.getInputdata(company);
-		std::unique_ptr<eVTOL> vehicle = std::make_unique<Fleet>(company, VehicleData);
-	}
-	
+	DataManager::InitializeDataManager();
+	/*ChargingManager::InitializeChargers(3);
+	FleetManager::InitializeFleet(20);*/
+
 	return 0;
 }

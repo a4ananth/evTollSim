@@ -76,6 +76,8 @@
       <SDLCheck>true</SDLCheck>
       <PreprocessorDefinitions>WIN32;_DEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
+      <LanguageStandard>stdcpp20</LanguageStandard>
+      <AdditionalIncludeDirectories>C:\Users\anant\OneDrive\Documents\Joby Aviation Takehome\evToll Simulator;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
@@ -104,6 +106,8 @@
       <SDLCheck>true</SDLCheck>
       <PreprocessorDefinitions>_DEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
+      <LanguageStandard>stdcpp20</LanguageStandard>
+      <AdditionalIncludeDirectories>C:\Users\anant\OneDrive\Documents\Joby Aviation Takehome\evToll Simulator;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
@@ -127,19 +131,17 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
-    <ClCompile Include="Fleet.cpp" />
     <ClCompile Include="ChargingManager.cpp" />
-    <ClCompile Include="DataParser.cpp" />
-    <ClCompile Include="eVTOL.cpp" />
+    <ClCompile Include="DataManager.cpp" />
+    <ClCompile Include="Fleet.cpp" />
     <ClCompile Include="evToll Simulator.cpp" />
-    <ClCompile Include="Logger.cpp" />
+    <ClCompile Include="FleetManager.cpp" />
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="Fleet.h" />
     <ClInclude Include="ChargingManager.h" />
-    <ClInclude Include="DataParser.h" />
-    <ClInclude Include="eVTOL.h" />
-    <ClInclude Include="Logger.h" />
+    <ClInclude Include="DataManager.h" />
+    <ClInclude Include="Fleet.h" />
+    <ClInclude Include="FleetManager.h" />
   </ItemGroup>
   <ItemGroup>
     <None Include="Manufacturer.json" />

@@ -11,13 +11,13 @@ std::atomic<int> ChargingManager::chargingTicketNumber = 0;
 bool ChargingManager::IsInitialized = false;
 
 
-void ChargingManager::ChargingStation::stopCharging(std::unique_ptr<eVTOL>& User, std::unique_ptr<ChargingStation>& station) {
+void ChargingManager::ChargingStation::stopCharging(std::shared_ptr<Fleet>& User, std::unique_ptr<ChargingStation>& station) {
 	station->IsOccupied = false;
 	User = std::move(station->curUser);
 }
 
 
-void ChargingManager::ChargingStation::startCharging(std::unique_ptr<eVTOL>& User, std::unique_ptr<ChargingStation>& station) {
+void ChargingManager::ChargingStation::startCharging(std::shared_ptr<Fleet>& User, std::unique_ptr<ChargingStation>& station) {
 	station->IsOccupied = true;
 	station->curUser = std::move(User);
 
@@ -29,13 +29,16 @@ void ChargingManager::ChargingStation::startCharging(std::unique_ptr<eVTOL>& Use
 
 inline ChargingManager::ChargingManager(const std::size_t& numChargers) {
 	if (!IsInitialized) {
+
 		Operations.reserve(numChargers + 1);
+
 		for (std::size_t i = 0; i < numChargers; ++i) {
 			std::unique_ptr<ChargingStation> station = std::make_unique<ChargingStation>(i + 1);
-			Operations.emplace_back(&ChargingManager::ChargingStationManager, this, std::move(station));
+			Operations.emplace_back(&ChargingManager::ChargingStationManager, ChargingMgrInstance, std::ref(station));
 		}
 
-		Operations.emplace_back(&ChargingManager::MonitorChargingRequests, this);
+		Operations.emplace_back(&ChargingManager::MonitorChargingRequests, ChargingMgrInstance);
+		
 		IsInitialized = true;
 	}
 }
@@ -47,14 +50,15 @@ void ChargingManager::ChargingStationManager(std::unique_ptr<ChargingStation>& s
 
 		// Wait until the station is unoccupied and a candidate is waiting in queue OR simulation completes
 		ChargerManager.wait(lock, [&] {
-			return (!AircraftsInLine.empty() && !station->IsOccupied);
+			return (!AircraftsInLine.empty() && !station->IsOccupied) || simulationComplete.load();
 			});
 
+		if (simulationComplete.load()) break;
 
 		if (!AircraftsInLine.empty()) {
 			Request request = std::move(AircraftsInLine.front());
-			std::unique_ptr<eVTOL> candidate = std::move(request.candidate);
-			int ticketNumber = request.assignedTicketNumber;
+			std::shared_ptr<Fleet> candidate = std::move(request.candidate);
+			station->chargingTicket = request.assignedTicketNumber;
 
 			AircraftsInLine.pop();
 
@@ -64,7 +68,7 @@ void ChargingManager::ChargingStationManager(std::unique_ptr<ChargingStation>& s
 
 			{
 				std::lock_guard<std::mutex> requestLock(requests_mtx);
-				completedRequests[ticketNumber] = std::move(candidate);
+				completedRequests[station->chargingTicket] = std::move(candidate);
 			}
 
 			if (!station->IsOccupied) ChargingStatus.notify_one();
@@ -74,51 +78,16 @@ void ChargingManager::ChargingStationManager(std::unique_ptr<ChargingStation>& s
 		}
 	}
 
-	{
-		std::unique_lock<std::mutex> listLock(requests_mtx);
-		if (station->IsOccupied) {
-			std::unique_ptr<eVTOL> candidate = std::move(station->curUser);
-			DataManager* logger = DataManager::getInstance(candidate->getManufacturerName());
-			logger->createLogData(candidate);
-		}
+	if (station->IsOccupied) {
+		station->IsOccupied = false;
+		station->chargingTicket = 0;
+		std::lock_guard<std::mutex> requestLock(requests_mtx);
+		completedRequests[station->chargingTicket] = std::move(station->curUser);
+		ChargingStatus.notify_one();
 	}
 
 	ChargerManager.notify_all();
 	completeSimulation();
-}
-
-
-void ChargingManager::clearQueue() {
-	DataManager* logger = nullptr;
-	std::unique_lock<std::mutex> queueLock(requests_mtx);
-	while (!AircraftsInLine.empty()) {
-		Request request = std::move(AircraftsInLine.front());
-		std::unique_ptr<eVTOL> candidate = std::move(request.candidate);
-		int ticketNumber = request.assignedTicketNumber;
-
-		completedRequests.erase(ticketNumber);
-
-		logger = DataManager::getInstance(candidate->getManufacturerName());
-		logger->createLogData(candidate);
-
-		AircraftsInLine.pop();
-	}
-}
-
-
-void ChargingManager::clearList() {
-	DataManager* logger = nullptr;
-	std::unique_lock<std::mutex> listLock(requests_mtx);
-	while (!requests.empty()) {
-		Request request = std::move(AircraftsInLine.front());
-		std::unique_ptr<eVTOL> candidate = std::move(request.candidate);
-		int ticketNumber = request.assignedTicketNumber;
-
-		completedRequests.erase(ticketNumber);
-
-		logger = DataManager::getInstance(candidate->getManufacturerName());
-		logger->createLogData(candidate);
-	}
 }
 
 
@@ -166,39 +135,89 @@ ChargingManager* ChargingManager::getInstance() {
 }
 
 
-void ChargingManager::completeSimulation() {
-	if (!ChargingManager::simulationComplete.load()) ChargingManager::simulationComplete = true;
+bool ChargingManager::completeSimulation() {
+	if (!ChargingManager::simulationComplete.load()) {
+		ChargingManager::simulationComplete.store(true);
+
+		ChargingMgrInstance->ChargerManager.notify_all();
+		ChargingMgrInstance->ChargingStatus.notify_all();
+	}
 
 	else {
-		ChargingMgrInstance->clearQueue();
+		static int threadsJoined = 0;
 		ChargingMgrInstance->clearList();
+		ChargingMgrInstance->clearQueue();
 
 		ChargingMgrInstance->ChargerManager.notify_all();
 		ChargingMgrInstance->ChargingStatus.notify_all();
 
-		for (std::thread& StationThreads : ChargingMgrInstance->Operations) {
-			if (StationThreads.joinable()) StationThreads.join();
+		for (std::thread& ChargingMgrThreads : ChargingMgrInstance->Operations) {
+			if (ChargingMgrThreads.joinable()) {
+				ChargingMgrThreads.join();
+				++threadsJoined;
+			}
 		}
+
+		return (threadsJoined == ChargingMgrInstance->Operations.size());
+	}
+
+	return false;
+}
+
+
+void ChargingManager::clearQueue() {
+	std::unique_lock<std::mutex> queueLock(ChargingMgrInstance->charger_mtx);
+	ChargingMgrInstance->ChargerManager.wait(queueLock, [&] {
+		return simulationComplete.load() && !AircraftsInLine.empty();
+		});
+
+	while (!ChargingMgrInstance->AircraftsInLine.empty()) {
+		Request request = std::move(ChargingMgrInstance->AircraftsInLine.front());
+		std::shared_ptr<Fleet> candidate = std::move(request.candidate);
+		int ticketNumber = request.assignedTicketNumber;
+
+		ChargingMgrInstance->completedRequests[ticketNumber] = std::move(candidate);
+		ChargingStatus.notify_one();
+
+		ChargingMgrInstance->AircraftsInLine.pop();
+	}	
+}
+
+
+void ChargingManager::clearList() {
+	std::unique_lock<std::mutex> listLock(ChargingMgrInstance->requests_mtx);
+	ChargingMgrInstance->ChargerManager.wait(listLock, [&] {
+		return simulationComplete.load() && !requests.empty();
+		});
+
+	while (!ChargingMgrInstance->requests.empty()) {
+		Request request = std::move(ChargingMgrInstance->requests.front());
+		std::shared_ptr<Fleet> candidate = std::move(request.candidate);
+		int ticketNumber = request.assignedTicketNumber;
+
+		ChargingMgrInstance->completedRequests[ticketNumber] = std::move(candidate);
+		ChargingStatus.notify_one();
 	}
 }
 
 
-void ChargingManager::requestCharger(std::unique_ptr<eVTOL>& aircraft) {
+void ChargingManager::requestCharger(std::shared_ptr<Fleet> aircraft) {
 	if (!simulationComplete.load()) {
 		int ticketNumber = generateTicketNumber();
-		{
+		if(ticketNumber > 0) {
 			std::lock_guard<std::mutex> lock(requests_mtx);
 			Request request(aircraft, ticketNumber);
 			requests.emplace_back(request);
 			completedRequests[ticketNumber] = nullptr;
 		}
 
-		{
-			std::unique_lock<std::mutex> lock(requests_mtx);
-			ChargingStatus.wait(lock, [&] { return completedRequests[ticketNumber] != nullptr; });
-		}
+		std::unique_lock<std::mutex> lock(requests_mtx);
+		ChargingStatus.wait(lock, [&] { return completedRequests[ticketNumber] != nullptr; });
 
-		if (completedRequests[ticketNumber]) aircraft = std::move(completedRequests[ticketNumber]);
+		if (completedRequests[ticketNumber]) {
+			aircraft = std::move(completedRequests[ticketNumber]);
+			completedRequests.erase(ticketNumber);
+		}
 	}
 
 	completeSimulation();
@@ -211,4 +230,5 @@ ChargingManager::~ChargingManager() {
 
 	ChargingManager::IsInitialized = false;
 	ChargingManager::simulationComplete = false;
+	ChargingManager::Operations.clear();
 }
