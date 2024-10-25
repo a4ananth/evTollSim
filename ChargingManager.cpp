@@ -45,7 +45,7 @@ inline ChargingManager::ChargingManager(const std::size_t& numChargers) {
 
 
 void ChargingManager::ChargingStationManager(std::unique_ptr<ChargingStation>& station) {
-	while (!simulationComplete.load()) {
+	while (station && !simulationComplete.load()) {
 		std::unique_lock<std::mutex> lock(charger_mtx);
 
 		// Wait until the station is unoccupied and a candidate is waiting in queue OR simulation completes

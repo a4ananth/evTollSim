@@ -9,9 +9,8 @@
 // Declaring static member variables for the class
 
 bool DataManager::IsInitialized = false;
-DataManager* DataManager::DataMgrInstance = nullptr;
 std::unordered_map<std::string, json> DataManager::manufacturerData = {};
-std::unordered_map<std::string, DataManager*> DataManager::LoggerInstances = {};
+std::unordered_map<std::string, std::shared_ptr<DataManager>> DataManager::LoggerInstances = {};
 
 
 void DataManager::readInputData() {
@@ -29,40 +28,44 @@ void DataManager::readInputData() {
 
 
 DataManager::DataManager() {
-	if (!IsInitialized) {
-		std::call_once(readOnce, &DataManager::readInputData, this);
-		
-		for (const std::pair<std::string, json>& manufacturer : manufacturerData) {
-			DataManager* instance = new DataManager();
-			LoggerInstances[manufacturer.first] = instance;
-		}
-
-		IsInitialized = true;
-	}
+	std::call_once(readOnce, &DataManager::readInputData, this);
 }
 
 
 std::size_t DataManager::getNumberOfManufacturers() {
-	if(!DataMgrInstance) return DataMgrInstance->manufacturerData.size();
+	if(IsInitialized) return manufacturerData.size();
 	return 0;
 }
 
 
 void DataManager::InitializeDataManager() {
-	if (!IsInitialized) DataMgrInstance = new DataManager();
+	if (!IsInitialized) {
+		DataManager dataHandler;
+
+		for (const std::pair<std::string, json>& manufacturer : manufacturerData) {
+			DataManager* loggerInstance = new DataManager();
+			std::shared_ptr<DataManager> instance(loggerInstance);
+			LoggerInstances[manufacturer.first] = instance;
+
+			std::cout << "Created a new DataManager instance for " << manufacturer.first << std::endl;
+		}
+
+		IsInitialized = true;
+	}
+
 	return;
 }
 
 
-DataManager* DataManager::getInstance(const std::optional<std::string>& ManufacturerName) {
-	if (ManufacturerName) {
-		if (LoggerInstances.find(*ManufacturerName) != LoggerInstances.end()) 
-			return LoggerInstances[*ManufacturerName];
+std::shared_ptr<DataManager> DataManager::getInstance(const std::string& ManufacturerName) {
+	if (ManufacturerName.empty()) {
+		if (LoggerInstances.find(ManufacturerName) != LoggerInstances.end()) 
+			return LoggerInstances[ManufacturerName];
 
 		return nullptr;
 	}
 	
-	return DataMgrInstance;
+	return nullptr;
 }
 
 
@@ -116,19 +119,4 @@ void DataManager::SaveLog(const json& LogData, const std::string& LogFileName) {
 	if (!file.is_open()) throw std::runtime_error("Unable to open log file");
 
 	file << LogData.dump(4);
-}
-
-
-DataManager::~DataManager() {
-	for (const std::pair<std::string, json>& manufacturer : manufacturerData) {
-		DataManager* Instance = LoggerInstances[manufacturer.first];
-		json ManufacturerData = manufacturerData[manufacturer.first];
-		
-		ManufacturerData.clear();
-		delete Instance;
-		Instance = nullptr;
-
-		manufacturerData.erase(manufacturer.first);
-		LoggerInstances.erase(manufacturer.first);
-	}
 }

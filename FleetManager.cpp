@@ -26,7 +26,7 @@ std::vector<int> FleetManager::generateRandomCapacityForFleets(const std::size_t
 	std::srand(static_cast<unsigned int>(std::time(NULL)));
 
 	// We will distribute (totalAircrafts - count) among the numbers
-	std::size_t count = DataManager::getInstance(std::nullopt)->getNumberOfManufacturers();
+	std::size_t count = DataManager::getNumberOfManufacturers();
 	std::size_t adjusted_sum = totalAircrafts - count;
 
 	// Generate 4 random cut points between 0 and adjusted_sum
@@ -56,7 +56,7 @@ std::vector<int> FleetManager::generateRandomCapacityForFleets(const std::size_t
 FleetManager::FleetManager() {}
 
 void FleetManager::InitializeFleet(const std::size_t& numAircrafts) {
-	if (!FleetManager::isInitialized && DataManager::getInstance(std::nullopt)->getNumberOfManufacturers() > 0) {
+	if (!FleetManager::isInitialized && DataManager::getNumberOfManufacturers() > 0) {
 
 		// Initialize the FleetMgrInstance so that the vectors may be reserved to expect the aircrafts
 		FleetMgrInstance = new FleetManager(numAircrafts);
@@ -65,10 +65,10 @@ void FleetManager::InitializeFleet(const std::size_t& numAircrafts) {
 		std::vector<int> eachFleetSize = FleetMgrInstance->generateRandomCapacityForFleets(numAircrafts);
 
 		// Get the list of names of all manufacturers
-		std::vector<std::string> manufacturerList = DataManager::getInstance(std::nullopt)->getAllManufacturers();
+		std::vector<std::string> manufacturerList = DataManager::getAllManufacturers();
 
 		for (std::size_t i = 0; i < manufacturerList.size(); ++i) {
-			DataManager* Instance = DataManager::getInstance(manufacturerList[i]);
+			std::shared_ptr<DataManager> Instance = DataManager::getInstance(manufacturerList[i]);
 			json aircraftConfigurationData = Instance->getInputdata(manufacturerList[i]);
 			Fleet::constructAircrafts(eachFleetSize[i], aircraftConfigurationData);
 		}

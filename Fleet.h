@@ -44,18 +44,18 @@ class Fleet
 	std::chrono::duration<double> airTime;									// Total airtime in seconds for aircraft
 	std::chrono::time_point<std::chrono::system_clock> StartOperationTime;	// Timestamp of beginning of flight in seconds
 	std::chrono::time_point<std::chrono::system_clock> EndOperationTime;	// Timestamp of ending of flight in seconds
-	
+
 	// Private construct defined to let the FleetManager manage object creation
-	
-	
+	Fleet();
+	Fleet(const json& InputData);
+
 	void startAircraft();										// Starts the aircraft and records the starting time of flight
 	void updateBatteryLevel();									// Keeps track of the rate of drain in battery and updates the remaining charge
 	void calculateBatteryDrainRate();							// Calculates the rate of drain of battery per second
 	void requestCharge(std::shared_ptr<Fleet>& aircraft);		// Sends the aircraft to the Charging manager to get charged
 
 public:
-	Fleet();
-	Fleet(const json& InputData);
+
 	static void constructAircrafts(const int& numAircrafts, const json& InputData);
 
 	static bool completeSimulation();							// Marks the flag to trigger the end of simulation

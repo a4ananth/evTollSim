@@ -175,7 +175,8 @@ double Fleet::getPassengerMiles() const {
 void Fleet::constructAircrafts(const int& numAircrafts, const json& InputData) {
     NumberOfAircraftsSpawned = numAircrafts;
     for (std::size_t i = 0; i < NumberOfAircraftsSpawned; ++i) {
-        std::shared_ptr<Fleet> Instance = std::make_shared<Fleet>(InputData);
+        Fleet* fleetInstance = new Fleet(InputData);
+        std::shared_ptr<Fleet> Instance(fleetInstance);
         FleetManager::getInstance()->fillFleet(Instance);
     }
 
