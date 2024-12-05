@@ -13,40 +13,50 @@
       <UniqueIdentifier>{67DA6AB6-F800-4c08-8B7A-83BB121AAD01}</UniqueIdentifier>
       <Extensions>rc;ico;cur;bmp;dlg;rc2;rct;bin;rgs;gif;jpg;jpeg;jpe;resx;tiff;tif;png;wav;mfcribbon-ms</Extensions>
     </Filter>
+    <Filter Include="Supporting Files">
+      <UniqueIdentifier>{9f5d9fec-def8-4c2f-b41a-c3bb00207293}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="evToll Simulator.cpp">
+    <ClCompile Include="SimpleSimulator.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="ChargingManager.cpp">
+    <ClCompile Include="RequestManager.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-	<ClCompile Include="FleetManager.cpp">
-	  <Filter>Source Files</Filter>
-	</ClCompile>
-    <ClCompile Include="DataManager.cpp">
+    <ClCompile Include="evTOL.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="Fleet.cpp">
+    <ClCompile Include="ChargingStation.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="DataLogger.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="FleetManager.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="Fleet.h">
+    <ClInclude Include="RequestManager.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="ChargingManager.h">
+    <ClInclude Include="evTOL.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-	<ClInclude Include="FleetManager.h">
-		<Filter>Header Files</Filter>
-	</ClInclude>
-    <ClInclude Include="DataManager.h">
+    <ClInclude Include="ChargingStation.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="DataLogger.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="FleetManager.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>
-    <None Include="packages.config" />
-    <None Include="Manufacturer.json" />
+    <None Include="Manufacturer.json">
+      <Filter>Supporting Files</Filter>
+    </None>
   </ItemGroup>
 </Project>

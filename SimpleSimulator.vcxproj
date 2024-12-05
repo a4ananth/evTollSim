@@ -21,8 +21,8 @@
   <PropertyGroup Label="Globals">
     <VCProjectVersion>17.0</VCProjectVersion>
     <Keyword>Win32Proj</Keyword>
-    <ProjectGuid>{c1373da8-0ebd-439c-8b37-96d78c036238}</ProjectGuid>
-    <RootNamespace>evTollSimulator</RootNamespace>
+    <ProjectGuid>{ee947819-a75a-4473-913a-8d66b795651f}</ProjectGuid>
+    <RootNamespace>SimpleSimulator</RootNamespace>
     <WindowsTargetPlatformVersion>10.0</WindowsTargetPlatformVersion>
   </PropertyGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
@@ -77,7 +77,6 @@
       <PreprocessorDefinitions>WIN32;_DEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
       <LanguageStandard>stdcpp20</LanguageStandard>
-      <AdditionalIncludeDirectories>C:\Users\anant\OneDrive\Documents\Joby Aviation Takehome\evToll Simulator;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
@@ -107,7 +106,6 @@
       <PreprocessorDefinitions>_DEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
       <LanguageStandard>stdcpp20</LanguageStandard>
-      <AdditionalIncludeDirectories>C:\Users\anant\OneDrive\Documents\Joby Aviation Takehome\evToll Simulator;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
@@ -131,30 +129,24 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
-    <ClCompile Include="ChargingManager.cpp" />
-    <ClCompile Include="DataManager.cpp" />
-    <ClCompile Include="Fleet.cpp" />
-    <ClCompile Include="evToll Simulator.cpp" />
+    <ClCompile Include="ChargingStation.cpp" />
+    <ClCompile Include="DataLogger.cpp" />
+    <ClCompile Include="evTOL.cpp" />
     <ClCompile Include="FleetManager.cpp" />
+    <ClCompile Include="RequestManager.cpp" />
+    <ClCompile Include="SimpleSimulator.cpp" />
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="ChargingManager.h" />
-    <ClInclude Include="DataManager.h" />
-    <ClInclude Include="Fleet.h" />
+    <ClInclude Include="ChargingStation.h" />
+    <ClInclude Include="DataLogger.h" />
+    <ClInclude Include="evTOL.h" />
     <ClInclude Include="FleetManager.h" />
+    <ClInclude Include="RequestManager.h" />
   </ItemGroup>
   <ItemGroup>
     <None Include="Manufacturer.json" />
-    <None Include="packages.config" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
-    <Import Project="packages\nlohmann.json.3.11.2\build\native\nlohmann.json.targets" Condition="Exists('packages\nlohmann.json.3.11.2\build\native\nlohmann.json.targets')" />
   </ImportGroup>
-  <Target Name="EnsureNuGetPackageBuildImports" BeforeTargets="PrepareForBuild">
-    <PropertyGroup>
-      <ErrorText>This project references NuGet package(s) that are missing on this computer. Use NuGet Package Restore to download them.  For more information, see http://go.microsoft.com/fwlink/?LinkID=322105. The missing file is {0}.</ErrorText>
-    </PropertyGroup>
-    <Error Condition="!Exists('packages\nlohmann.json.3.11.2\build\native\nlohmann.json.targets')" Text="$([System.String]::Format('$(ErrorText)', 'packages\nlohmann.json.3.11.2\build\native\nlohmann.json.targets'))" />
-  </Target>
 </Project>
